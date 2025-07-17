@@ -1,0 +1,54 @@
+{
+  "happy": [
+    {
+      "name": "The Daily Smile",
+      "url": "https://podcasts.apple.com/us/podcast/the-daily-smile/id1506192485"
+    },
+    {
+      "name": "Feel Better, Live More",
+      "url": "https://example.com/feel-better"
+    }
+  ],
+  "sad": [
+    {
+      "name": "Terrible, Thanks for Asking",
+      "url": "https://example.com/terrible"
+    }
+  ],
+  "confident": [
+    {
+      "name": "How I Built This",
+      "url": "https://example.com/how-i-built-this"
+    }
+  ],
+  "angry": [
+    {
+      "name": "Anger Management Podcast",
+      "url": "https://example.com/anger"
+    }
+  ],
+  "calm": [
+    {
+      "name": "Sleepy Time Moods",
+      "url": "https://example.com/calm"
+    }
+  ],
+  "surprised": [
+    {
+      "name": "Surprise Me",
+      "url": "https://example.com/surprise"
+    }
+  ],
+  "tired": [
+    {
+      "name": "Deep Sleep Sounds",
+      "url": "https://example.com/tired"
+    }
+  ],
+  "thoughtful": [
+    {
+      "name": "Philosophize This!",
+      "url": "https://example.com/thoughtful"
+    }
+  ]
+}
