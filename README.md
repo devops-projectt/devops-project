@@ -124,7 +124,7 @@ moodcast/
 
 ## 📬 Contact
 
-For questions or feedback, please open an issue or contact [your email or GitHub profile].
+For questions or feedback, please open an issue or contact [https://github.com/Hod98].
 
 ```
 
