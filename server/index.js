@@ -6,6 +6,7 @@ import recommendationRoutes from './routes/recommendations.js';
 import authRoutes from './routes/auth.js';
 import podcastRoutes from './routes/podcasts.js';
 import userRoutes from './routes/user.js';
+import aiRoutes from './routes/ai.js';
 
 console.log('authRoutes:', authRoutes);
 console.log('recommendationRoutes:', recommendationRoutes);
@@ -25,6 +26,7 @@ app.use('/api/auth', authRoutes); // חדש! - התחברות/הרשמה
 app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/podcasts', podcastRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/ai', aiRoutes); // AI-powered recommendations
 
 app.get('/', (req, res) => {
   res.send('MoodCast backend is up 🚀');

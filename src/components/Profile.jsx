@@ -17,7 +17,7 @@ function Profile() {
       setError('');
       try {
         // Fetch profile
-        const resProfile = await fetch('http://localhost:3001/api/user/profile', {
+        const resProfile = await fetch('/api/user/profile', {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!resProfile.ok) throw new Error('Failed to fetch profile');
@@ -27,7 +27,7 @@ function Profile() {
         setBio(profileData.bio || '');
 
         // Fetch favorites (array of podcastIds)
-        const resFav = await fetch('http://localhost:3001/api/user/favorites', {
+        const resFav = await fetch('/api/user/favorites', {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!resFav.ok) throw new Error('Failed to fetch favorites');
@@ -36,7 +36,7 @@ function Profile() {
         // Fetch podcast details for each favorite
         const podcasts = await Promise.all(
           favIds.map(async (id) => {
-            const res = await fetch(`http://localhost:3001/api/podcasts?podcastId=${id}`);
+            const res = await fetch(`/api/podcasts?podcastId=${id}`);
             const data = await res.json();
             return data[0]; // API returns an array
           })
@@ -55,7 +55,7 @@ function Profile() {
     e.preventDefault();
     setError('');
     try {
-      const res = await fetch('http://localhost:3001/api/user/profile', {
+      const res = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

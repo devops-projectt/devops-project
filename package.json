@@ -2,11 +2,13 @@
   "name": "moodcast",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "build:css": "tailwindcss -i ./src/index.css -o ./src/output.css --watch"
+    "build:css": "tailwindcss -i ./src/index.css -o ./src/output.css --watch",
+    "server": "node server/index.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

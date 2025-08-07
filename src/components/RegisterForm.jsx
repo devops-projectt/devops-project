@@ -13,20 +13,24 @@ function RegisterForm() {
     setError('');
     setSuccess('');
 
-    const res = await fetch('http://localhost:3001/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-    const data = await res.json();
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
 
-    if (res.ok) {
-      setSuccess('Registration successful! Please log in.');
-      setUsername('');
-      setPassword('');
-      setTimeout(() => navigate('/login'), 1500);
-    } else {
-      setError(data.error || 'Registration failed');
+      if (res.ok) {
+        setSuccess('Registration successful! Please log in.');
+        setUsername('');
+        setPassword('');
+        setTimeout(() => navigate('/login'), 1500);
+      } else {
+        setError(data.error || 'Registration failed');
+      }
+    } catch (err) {
+      setError('Network error or server not responding.');
     }
   };
 

@@ -71,7 +71,7 @@ function Recommendations() {
   const isFavorite = (podcast) => favorites.some((fav) => fav.podcastId === podcast.podcastId);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 pb-6">
       <h1 className="text-4xl font-bold text-purple-700 mb-4">🎧 MoodCast</h1>
       <p className="text-lg text-gray-600 mb-8 text-center">
         Choose your mood and get podcast recommendations!

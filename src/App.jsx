@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import LoginForm from "./components/LoginForm";
 import RegisterForm from "./components/RegisterForm";
 import Recommendations from "./components/Recommendations";
+import AIRecommendations from "./components/AIRecommendations";
 import Profile from "./components/Profile";
 import Header from "./components/Header";
 
@@ -36,7 +37,7 @@ function AppContent({ isLoggedIn, setIsLoggedIn }) {
       </div>
 
       {/* טאבים */}
-      <div className="flex gap-4 mb-8">
+      <div className="flex gap-4 mb-2 justify-center">
         {!isLoggedIn && (
           <>
             <NavLink
@@ -69,7 +70,7 @@ function AppContent({ isLoggedIn, setIsLoggedIn }) {
             <NavLink
               to="/recommendations"
               className={({ isActive }) =>
-                `px-28 py-4 rounded-full text-lg font-semibold transition duration-200
+                `w-48 py-4 rounded-full text-lg font-semibold text-center transition duration-200
                 ${isActive
                   ? "bg-purple-600 text-white shadow"
                   : "bg-white border-2 border-purple-600 text-purple-700 hover:bg-purple-100 hover:text-purple-900 focus:outline-none"}
@@ -79,9 +80,21 @@ function AppContent({ isLoggedIn, setIsLoggedIn }) {
               Recommendations
             </NavLink>
             <NavLink
+              to="/ai-recommendations"
+              className={({ isActive }) =>
+                `w-48 py-4 rounded-full text-lg font-semibold text-center transition duration-200
+                ${isActive
+                  ? "bg-purple-600 text-white shadow"
+                  : "bg-white border-2 border-purple-600 text-purple-700 hover:bg-purple-100 hover:text-purple-900 focus:outline-none"}
+                `
+              }
+            >
+              AI Assistant
+            </NavLink>
+            <NavLink
               to="/profile"
               className={({ isActive }) =>
-                `px-28 py-4 rounded-full text-lg font-semibold transition duration-200
+                `w-48 py-4 rounded-full text-lg font-semibold text-center transition duration-200
                 ${isActive
                   ? "bg-purple-600 text-white shadow"
                   : "bg-white border-2 border-purple-600 text-purple-700 hover:bg-purple-100 hover:text-purple-900 focus:outline-none"}
@@ -104,9 +117,11 @@ function AppContent({ isLoggedIn, setIsLoggedIn }) {
         <Route path="/register" element={<RegisterForm />} />
         {isLoggedIn && <Route path="/profile" element={<Profile />} />}
         {isLoggedIn && <Route path="/recommendations" element={<Recommendations />} />}
+        {isLoggedIn && <Route path="/ai-recommendations" element={<AIRecommendations />} />}
         {/* Protect routes: redirect to login if not logged in */}
         {!isLoggedIn && <Route path="/profile" element={<Navigate to="/login" />} />}
         {!isLoggedIn && <Route path="/recommendations" element={<Navigate to="/login" />} />}
+        {!isLoggedIn && <Route path="/ai-recommendations" element={<Navigate to="/login" />} />}
       </Routes>
     </div>
   );
