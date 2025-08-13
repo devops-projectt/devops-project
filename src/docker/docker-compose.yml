@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: moodcast-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-secretpassword}
+      MONGO_INITDB_DATABASE: moodcast
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - moodcast-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: moodcast-app
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      NODE_ENV: production
+      PORT: 5173
+      MONGODB_URI: mongodb://admin:${MONGO_PASSWORD:-secretpassword}@mongodb:27017/moodcast?authSource=admin
+      LISTEN_NOTES_API_KEY: ${LISTEN_NOTES_API_KEY}
+      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - moodcast-network
+    command: >
+      sh -c "
+        echo 'Waiting for MongoDB to be ready...';
+        sleep 10;
+        if [ ! -f /app/.data-imported ]; then
+          echo 'Importing podcast data...';
+          node /app/importFromListenNotes.js && touch /app/.data-imported;
+        fi;
+        echo 'Starting server...';
+        cd /app/server && node index.js
+      "
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  moodcast-network:
+    driver: bridge
