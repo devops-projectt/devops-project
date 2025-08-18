@@ -1,0 +1,15 @@
+server_name: project
+env: dev
+
+vpc_name: project-vpc
+network: 10.10.0.0/16
+subnet_public: 10.10.0.0/24
+env_name: project
+zone: eu-central-1
+subnet1: eu-central-1a
+
+keypair: id_rsa
+
+aws_ubuntu_ami: ami-01e444924a2233b07
+Server_type: t3.micro
+server_volume_size: 8
