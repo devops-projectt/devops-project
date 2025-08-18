@@ -315,8 +315,8 @@
         chdir: /opt/app
       loop:
         - docker login -u {{ docker_user }} -p {{ docker_token }}
-        - docker build . --tag {{ docker_user }}/{{ project_name }}:latest
-        - docker push {{ docker_user }}/{{ project_name }}:latest
+        - docker build . --tag {{ docker_user }}/pass_gen:latest
+        - docker push {{ docker_user }}/pass_gen:latest
 
     - name: Start docker app
       ansible.builtin.shell: docker compose up -d
