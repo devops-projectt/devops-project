@@ -26,13 +26,13 @@ services:
     container_name: moodcast-app
     restart: unless-stopped
     ports:
-      - "5173:5173"
+      - "80:5173"
     environment:
       NODE_ENV: production
       PORT: 5173
       MONGODB_URI: mongodb://admin:${MONGO_PASSWORD:-secretpassword}@mongodb:27017/moodcast?authSource=admin
       LISTEN_NOTES_API_KEY: ${LISTEN_NOTES_API_KEY}
-      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret}
+      JWT_SECRET: ${JWT_SECRET:5ddf34e91b6349097eacc245b26958f5}
     depends_on:
       mongodb:
         condition: service_healthy

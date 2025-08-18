@@ -1,0 +1,333 @@
+---
+# creates the infrastructure for the application on the cloud
+- name: Create App infra on AWS
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - group_vars/env
+  vars:
+    ansible_host_key_checking: false
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+
+  tasks:
+    - name: Create VPC (Virtual Private Cloud)
+      amazon.aws.ec2_vpc_net:
+        name: "{{ vpc_name }}"
+        cidr_block: "{{ network }}"
+        region: "{{ zone }}"
+        state: present
+        dns_hostnames: true
+        dns_support: true
+        multi_ok: false
+        tags:
+          Name: "{{ vpc_name }}"
+      register: vpc
+
+    - name: Add VPC definition to vars file
+      ansible.builtin.lineinfile:
+        path: group_vars/project.env
+        regexp: '^vpc_id:\s*'
+        line: 'vpc_id: "{{ vpc.vpc.id }}"'
+        state: present
+        create: true
+
+    # create the subnets for the application
+    - name: Associate Subnet to VPC
+      amazon.aws.ec2_vpc_subnet:
+        state: present
+        region: "{{ zone }}"
+        vpc_id: "{{ vpc.vpc.id }}"
+        cidr: "{{ item.env_network }}"
+        map_public: "{{ item.external_ip }}"
+        az: "{{ item.az }}"
+        resource_tags:
+          Name: "{{ item.subnet_name }}"
+        wait: true
+      loop:
+        - subnet_name: "{{ vpc_name }}_public"
+          env_network: "{{ subnet_public }}"
+          external_ip: true
+          az: "{{ subnet1 }}"
+      register: subnet
+
+    - name: Add Subnet definition to vars file
+      ansible.builtin.lineinfile:
+        path: group_vars/project.env
+        regexp: '^subnet_id:\s*'
+        line: 'subnet_id: "{{ subnet.results[0].subnet.id }}"'
+        state: present
+        create: true
+
+    # create the Internet Gateway for the VPC
+    - name: Create IGW (Internet Gateway)
+      amazon.aws.ec2_vpc_igw:
+        vpc_id: "{{ vpc.vpc.id }}"
+        state: present
+        region: "{{ zone }}"
+        tags:
+          Name: "{{ vpc_name }}_igw"
+      register: igw
+
+    - name: Add IGW definition to vars file
+      ansible.builtin.lineinfile:
+        path: group_vars/project.env
+        regexp: '^igw_id:\s*'
+        line: 'igw_id: "{{ igw.gateway_id }}"'
+        state: present
+        create: true
+
+    - name: Route table for public subnets
+      amazon.aws.ec2_vpc_route_table:
+        vpc_id: "{{ vpc.vpc.id }}"
+        state: present
+        region: "{{ zone }}"
+        subnets:
+          - "{{ subnet.results[0].subnet.id }}"
+        routes:
+          - dest: "0.0.0.0/0"
+            gateway_id: "{{ igw.gateway_id }}"
+        tags:
+          Name: "{{ vpc_name }}_public_rt"
+
+    - name: Create security group
+      amazon.aws.ec2_group:
+        name: "{{ vpc_name }} VPC SG"
+        description: "{{ vpc_name }} VPC SG"
+        vpc_id: "{{ vpc.vpc.id }}"
+        state: present
+        region: "{{ zone }}"
+        rules:
+          - proto: tcp
+            ports:
+              - 22
+              - 80
+            cidr_ip: 0.0.0.0/0
+      register: sg
+
+    - name: Create server
+      amazon.aws.ec2_instance:
+        image_id: "{{ aws_ubuntu_ami }}"
+        instance_type: "{{ Server_type }}"
+        region: "{{ zone }}"
+        key_name: "{{ keypair }}"
+        volumes:
+          - device_name: /dev/sda1
+            ebs:
+              volume_size: "{{ server_volume_size }}"
+              volume_type: gp3
+              delete_on_termination: true
+        tags:
+          Name: "{{ server_name }}"
+          Environment: "{{ env }}"
+        count: 1
+        wait: true
+        wait_timeout: 300
+        vpc_subnet_id: "{{ subnet.results[0].subnet.id }}"
+        security_groups:
+          - "{{ sg.group_id }}"
+        network:
+          assign_public_ip: true
+        state: running
+      register: server
+
+    # get server instance IP
+    - name: Get IP of instance
+      amazon.aws.ec2_instance_info:
+        region: "{{ zone }}"
+        filters:
+          "tag:Name": "{{ server_name }}"
+          "instance-state-name": ["running"]
+      register: ec2_data
+
+    - name: Show public IP
+      ansible.builtin.debug:
+        var: ec2_data.instances[0].public_ip_address
+
+    - name: Add server public IP to application host group
+      ansible.builtin.add_host:
+        name: "{{ ec2_data.instances[0].public_ip_address }}"
+        groups: app
+
+    - name: Add server instance ID to vars file
+      ansible.builtin.lineinfile:
+        path: group_vars/project.env
+        regexp: '^server_id:\s*'
+        line: 'server_id: "{{ ec2_data.instances[0].instance_id }}"'
+        state: present
+        create: true
+
+    - name: Wait for SSH to start using external IP
+      ansible.builtin.wait_for:
+        host: "{{ ec2_data.instances[0].public_ip_address }}"
+        port: 22
+        timeout: 300
+
+    - name: Extra pause for ubuntu user access after boot
+      ansible.builtin.pause:
+        seconds: 30
+
+########################################################
+# after creating the server, we can run the playbook to install the application
+- name: Setup web server
+  hosts: app
+  remote_user: ubuntu
+  become: true
+  gather_facts: false
+  vars_files:
+    - group_vars/docker.env
+
+  tasks:
+    - name: Ensure apt cache is updated
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Add Docker GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable"
+        state: present
+        filename: docker
+
+    - name: Install Docker packages
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: latest
+        update_cache: true
+
+    - name: Restart & enable Docker service
+      ansible.builtin.service:
+        name: docker
+        state: restarted
+        enabled: true
+
+    - name: Ensure ~/.ssh exists with correct perms
+      ansible.builtin.file:
+        path: /home/ubuntu/.ssh
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0700'
+
+    - name: Copy GitHub deploy key to remote
+      copy:
+        src: ~/.ssh/ci_github
+        dest: /home/ubuntu/.ssh/ci_github
+        owner: ubuntu
+        group: ubuntu 
+        mode: '0600'
+
+##################### test to check ###########################################
+    - name: Add github.com to known_hosts
+      ansible.builtin.shell: ssh-keyscan -H github.com >> /home/ubuntu/.ssh/known_hosts
+      args:
+        creates: /home/ubuntu/.ssh/known_hosts
+
+    - name: Configure SSH for GitHub
+      copy:
+        dest: /home/ubuntu/.ssh/config
+        owner: ubuntu
+        group: ubuntu
+        mode: '0600'
+        content: |
+          HostName github.com
+          User git
+          IdentityFile /home/ubuntu/.ssh/ci_github
+          IdentitiesOnly yes
+          StrictHostKeyChecking yes
+
+
+    #* - name: Copy private key to remote (use only if you understand the risk)
+    #  ansible.builtin.copy:
+    #    content: "{{ lookup('file', '~/.ssh/id_rsa') }}"
+    #    dest: /home/ubuntu/.ssh/id_rsa
+    #    owner: ubuntu
+    #    group: ubuntu
+    #    mode: '0600' 
+
+########### test ########################
+
+    - name: Show public key derived from private (should match GitHub Deploy key exactly)
+      ansible.builtin.shell: ssh-keygen -y -f /home/ubuntu/.ssh/ci_github
+      register: derived_pub
+      changed_when: false
+
+    - name: Debug derived public key (compare it in GitHub → Deploy keys of devops-projectt/devops-project)
+      ansible.builtin.debug:
+        msg:
+          - "Derived public key:"
+          - "{{ derived_pub.stdout }}"
+
+    - name: Test SSH auth to GitHub with this key (should list refs for 'main')
+      become: true
+      become_user: ubuntu
+      ansible.builtin.shell: |
+        GIT_SSH_COMMAND="ssh -i /home/ubuntu/.ssh/ci_github -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
+        git ls-remote git@github.com:devops-projectt/devops-project.git -h refs/heads/main
+      register: git_test
+      changed_when: false
+      failed_when: git_test.rc != 0
+##########################################
+
+    - name: Ensure /opt/app exists and owned by ubuntu
+      ansible.builtin.file:
+        path: /opt/app
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Clone application repository (as ubuntu)
+      become: true
+      become_user: ubuntu
+      ansible.builtin.git:
+        repo: git@github.com:devops-projectt/devops-project.git
+        dest: /opt/app
+        version: main
+        key_file: /home/ubuntu/.ssh/ci_github
+        force: true
+        accept_hostkey: true
+
+
+    - name: Clone application repository
+      become: true
+      become_user: ubuntu
+      ansible.builtin.git:
+        repo: git@github.com:devops-projectt/devops-project.git
+        dest: /opt/app
+        version: main
+        key_file: /home/ubuntu/.ssh/ci_github
+        force: true
+        accept_hostkey: true
+
+    - name: Build & push docker image
+      ansible.builtin.shell: "{{ item }}"
+      args:
+        chdir: /opt/app
+      loop:
+        - docker login -u {{ docker_user }} -p {{ docker_token }}
+        - docker build . --tag {{ docker_user }}/pass_gen:latest
+        - docker push {{ docker_user }}/pass_gen:latest
+
+    - name: Start docker app
+      ansible.builtin.shell: docker compose up -d
+      args:
+        chdir: /opt/app
+
+    - name: Get public IP from server
+      ansible.builtin.shell: curl -s ident.me
+      register: ip_address
+
+    - ansible.builtin.debug:
+        msg:
+          - "Don't forget to change the HOST secret in GitHub to {{ ip_address.stdout }}"
+          - "Your app is ready at http://{{ ip_address.stdout }}"

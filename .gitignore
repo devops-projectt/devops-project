@@ -25,3 +25,4 @@ coverage/
 
 # Local environment
 .env.*
+ansible/group_vars/docker.env 
