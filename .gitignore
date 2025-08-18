@@ -25,4 +25,5 @@ coverage/
 
 # Local environment
 .env.*
+.secrets
 ansible/group_vars/docker.env 
