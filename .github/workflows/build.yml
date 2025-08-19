@@ -76,7 +76,6 @@ jobs:
         username: ${{ secrets.USER }}
         key: ${{ secrets.SSH_KEY }}
         port: ${{ secrets.PORT }}
-        script_stop: true
         script: |
           cd /opt/app
           sudo docker compose pull && sudo docker compose up -d --force-recreate
