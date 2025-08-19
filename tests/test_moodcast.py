@@ -21,7 +21,10 @@ for option in options:
     chrome_options.add_argument(option)
 
 def test_site():
-    url = "http://localhost:5173"
+    import os
+    # Default to port 80 (docker-compose external port), but allow override
+    port = os.getenv('TEST_PORT', '80')
+    url = f"http://localhost:{port}"
     
     # Try using system ChromeDriver first
     try:
