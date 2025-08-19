@@ -5,7 +5,48 @@ on:
     branches: [ main ]
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install test dependencies
+      run: |
+        cd tests
+        pip install -r requirements.txt
+    
+    - name: Start application with Docker Compose
+      run: |
+        # Create minimal .env for testing
+        echo "MONGO_PASSWORD=testpassword" > .env
+        echo "JWT_SECRET=test-jwt-secret-for-github-actions" >> .env
+        echo "LISTEN_NOTES_API_KEY=test-api-key" >> .env
+        
+        # Start the application
+        docker-compose up -d
+    
+    - name: Wait for application to be ready
+      run: |
+        echo "Waiting for application to start..."
+        timeout 60s bash -c 'until curl -f http://localhost:80; do echo "Waiting for app..."; sleep 5; done'
+        echo "Application is ready!"
+    
+    - name: Run Selenium tests
+      run: |
+        cd tests
+        python test_moodcast.py
+        
+    - name: Cleanup
+      if: always()
+      run: docker-compose down -v
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -23,7 +64,7 @@ jobs:
       run: docker push ${{ secrets.DOCKER_USER }}/${{ secrets.PROJECT }}:latest
 
   deploy:
-    needs: build
+    needs: [test, build]
     runs-on: ubuntu-latest
     steps:
     - name: deploy site
