@@ -30,7 +30,7 @@ jobs:
         echo "LISTEN_NOTES_API_KEY=test-api-key" >> .env
         
         # Start the application
-        docker-compose up -d
+        docker compose up -d
     
     - name: Wait for application to be ready
       run: |
@@ -45,7 +45,7 @@ jobs:
         
     - name: Cleanup
       if: always()
-      run: docker-compose down -v
+      run: docker compose down -v
 
   build:
     needs: test
