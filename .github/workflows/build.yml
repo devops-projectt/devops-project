@@ -3,6 +3,8 @@ name: upload Moodcast image to DockerHub
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   test:
