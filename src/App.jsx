@@ -32,7 +32,7 @@ function AppContent({ isLoggedIn, setIsLoggedIn }) {
           <span role="img" aria-label="headphones">🎧</span> MoodCast
         </span>
         <span className="text-gray-600 mt-2 text-lg">
-          Login or Register to continue
+          Login or Register to continue 1234
         </span>
       </div>
 
