@@ -245,15 +245,6 @@
           IdentitiesOnly yes
           StrictHostKeyChecking yes
 
-
-    #* - name: Copy private key to remote (use only if you understand the risk)
-    #  ansible.builtin.copy:
-    #    content: "{{ lookup('file', '~/.ssh/id_rsa') }}"
-    #    dest: /home/ubuntu/.ssh/id_rsa
-    #    owner: ubuntu
-    #    group: ubuntu
-    #    mode: '0600' 
-
 ########### test ########################
 
     - name: Show public key derived from private (should match GitHub Deploy key exactly)
@@ -287,18 +278,6 @@
         mode: '0755'
 
     - name: Clone application repository (as ubuntu)
-      become: true
-      become_user: ubuntu
-      ansible.builtin.git:
-        repo: git@github.com:devops-projectt/devops-project.git
-        dest: /opt/app
-        version: main
-        key_file: /home/ubuntu/.ssh/ci_github
-        force: true
-        accept_hostkey: true
-
-
-    - name: Clone application repository
       become: true
       become_user: ubuntu
       ansible.builtin.git:
